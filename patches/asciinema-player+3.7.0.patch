@@ -1,0 +1,92 @@
+diff --git a/node_modules/asciinema-player/dist/bundle/asciinema-player.css b/node_modules/asciinema-player/dist/bundle/asciinema-player.css
+index 3688b23..6bf3d12 100644
+--- a/node_modules/asciinema-player/dist/bundle/asciinema-player.css
++++ b/node_modules/asciinema-player/dist/bundle/asciinema-player.css
+@@ -195,7 +195,7 @@ div.ap-wrapper div.ap-player {
+ .ap-player .fg-15 {
+   font-weight: bold;
+ }
+-pre.ap-terminal {
++.ap-terminal {
+   box-sizing: content-box;
+   overflow: hidden;
+   padding: 0;
+@@ -214,51 +214,51 @@ pre.ap-terminal {
+   font-family: Consolas, Menlo, 'Bitstream Vera Sans Mono', monospace, 'Powerline Symbols';
+   font-variant-ligatures: none;
+ }
+-pre.ap-terminal .ap-line {
++.ap-terminal .ap-line {
+   letter-spacing: normal;
+   overflow: hidden;
+ }
+-pre.ap-terminal .ap-line span {
++.ap-terminal .ap-line span {
+   padding: 0;
+   display: inline-block;
+   height: 100%;
+ }
+-pre.ap-terminal .ap-line {
++.ap-terminal .ap-line {
+   display: block;
+   width: 200%;
+ }
+-pre.ap-terminal .ap-line .ap-cursor-a {
++.ap-terminal .ap-line .ap-cursor-a {
+   display: inline-block;
+ }
+-pre.ap-terminal .ap-line .ap-cursor-b {
++.ap-terminal .ap-line .ap-cursor-b {
+   display: none;
+   border-radius: 0.05em;
+ }
+-pre.ap-terminal .ap-line .ap-blink {
++.ap-terminal .ap-line .ap-blink {
+   visibility: hidden;
+ }
+-pre.ap-terminal.ap-cursor .ap-line .ap-cursor-a {
++.ap-terminal.ap-cursor .ap-line .ap-cursor-a {
+   display: none;
+ }
+-pre.ap-terminal.ap-cursor .ap-line .ap-cursor-b {
++.ap-terminal.ap-cursor .ap-line .ap-cursor-b {
+   display: inline-block;
+ }
+-pre.ap-terminal.ap-blink .ap-line .ap-blink {
++.ap-terminal.ap-blink .ap-line .ap-blink {
+   visibility: visible;
+ }
+-pre.ap-terminal .ap-bright {
++.ap-terminal .ap-bright {
+   font-weight: bold;
+ }
+-pre.ap-terminal .ap-faint {
++.ap-terminal .ap-faint {
+   opacity: 0.5;
+ }
+-pre.ap-terminal .ap-underline {
++.ap-terminal .ap-underline {
+   text-decoration: underline;
+ }
+-pre.ap-terminal .ap-italic {
++.ap-terminal .ap-italic {
+   font-style: italic;
+ }
+-pre.ap-terminal .ap-strikethrough {
++.ap-terminal .ap-strikethrough {
+   text-decoration: line-through;
+ }
+ div.ap-player div.ap-control-bar {
+diff --git a/node_modules/asciinema-player/dist/bundle/asciinema-player.js b/node_modules/asciinema-player/dist/bundle/asciinema-player.js
+index c900997..b7c02b9 100644
+--- a/node_modules/asciinema-player/dist/bundle/asciinema-player.js
++++ b/node_modules/asciinema-player/dist/bundle/asciinema-player.js
+@@ -2192,7 +2192,7 @@ var AsciinemaPlayer = (function (exports) {
+     })();
+   });
+ 
+-  const _tmpl$$6 = /*#__PURE__*/template(`<pre class="ap-terminal" aria-live="polite" tabindex="0"></pre>`);
++  const _tmpl$$6 = /*#__PURE__*/template(`<div class="ap-terminal" aria-live="polite" tabindex="0"></div>`);
+   var Terminal = (props => {
+     const lineHeight = () => props.lineHeight ?? 1.3333333333;
+     const terminalStyle = createMemo(() => {

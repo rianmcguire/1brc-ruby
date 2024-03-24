@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@marp-team/marp-cli": "^3.4.0",
+    "asciinema-player": "^3.7.0",
+    "patch-package": "^8.0.0"
+  },
+  "scripts": {
+    "postinstall": "patch-package"
+  }
+}

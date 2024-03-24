@@ -1,0 +1,8 @@
+measurements*
+stackprof.dump*
+perf.data*
+tmp/
+lib/
+slides.html
+*.svg
+node_modules/

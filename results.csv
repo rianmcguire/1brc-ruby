@@ -1,0 +1,13 @@
+command,input,mean
+javamak (Java),measurements_1B.txt,45.793
+serkan-ozal (Java),measurements_1B.txt,1.786
+001_baseline.rb,measurements_10M.txt,10.994
+002_yjit.rb,measurements_10M.txt,9.225
+003_gc_golf.rb,measurements_10M.txt,6.530
+004_parallel_processes.rb,measurements_100M.txt,9.744
+005_parallel_ractors.rb,measurements_100M.txt,38.897
+006_io_buffer.rb,measurements_100M.txt,9.857
+007_io_buffer_ext.rb,measurements_100M.txt,5.681
+008_custom_parser.rb,measurements_100M.txt,5.312
+009_io_buffer_reader.rb,measurements_100M.txt,3.180
+010_polars.rb,measurements_1B.txt,17.209
