@@ -1,5 +1,7 @@
 ---
 marp: true
+title: One Billion Rows in Ruby
+author: Rian McGuire
 ---
 <style>
     img[alt~="center"] {
