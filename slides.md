@@ -8,9 +8,9 @@ marp: true
     }
 </style>
 
-<script src="/node_modules/asciinema-player/dist/bundle/asciinema-player.js"></script>
-<link rel="stylesheet" href="/node_modules/asciinema-player/dist/bundle/asciinema-player.css" />
-<script src="/asciinema-loader.js"></script>
+<script src="asciinema-player.js"></script>
+<link rel="stylesheet" href="asciinema-player.css" />
+<script src="asciinema-loader.js"></script>
 
 # One Billion Rows in Ruby
 
@@ -133,7 +133,7 @@ There's tool I found called hyperfine that automates this, and it can also compa
 
 # Baseline
 
-<div class="asciinema" data-url="/baseline.cast"></div>
+<div class="asciinema" data-url="baseline.cast"></div>
 
 ---
 
@@ -173,7 +173,7 @@ I'm using Ruby 3.3.0, which allows you to enable YJIT without using the command-
 
 # YJIT
 
-<div class="asciinema" data-url="/yjit.cast"></div>
+<div class="asciinema" data-url="yjit.cast"></div>
 
 ----
 
@@ -233,7 +233,7 @@ stackprof --d3-flamegraph stackprof.dump > flamegraph.html
 ```
 
 <div style="overflow: hidden; flex: 2; border: 1px solid grey;">
-    <iframe src="/flamegraph.html" style="width: 100%; height: 700px; border: 0;"></iframe>
+    <iframe src="flamegraph.html" style="width: 100%; height: 700px; border: 0;"></iframe>
 </div>
 
 <!--
@@ -404,7 +404,7 @@ So what about Ractors - they should be even faster because everything happens wi
 
 # Can we go further?
 
-<div class="asciinema" data-url="/rbspy-004.cast"></div>
+<div class="asciinema" data-url="rbspy-004.cast"></div>
 
 <!--
 Let's run the profiler again and see what the bottleneck is now.
