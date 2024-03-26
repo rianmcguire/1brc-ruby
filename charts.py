@@ -43,3 +43,16 @@ fig = px.line(
 )
 fig.update_layout(title_x=0.5, yaxis_range=[0, 2.3], xaxis_range=[0,100])
 fig.write_image(f"thermal.svg")
+
+df = pd.read_csv('proc.csv')
+fig = px.line(
+    df,
+    x='threads',
+    y='mean',
+    title="005_parallel_processes.rb measurements_100M.txt",
+    labels={
+        "threads": "Number of threads",
+        "mean": "Time (s)"
+    }
+)
+fig.write_image(f"proc.svg")
