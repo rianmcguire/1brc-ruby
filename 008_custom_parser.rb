@@ -57,6 +57,7 @@ def process_chunk(buffer, offset, limit)
     offset += name.bytesize
 
     # Assumes numbers have a single decimal digit, and results in an integer value in tenths of a degree.
+    # eg. "42.3\n" -> 423
     neg = false
     value = 0
     if buffer.get_value(:U8, offset) == MINUS
@@ -66,6 +67,11 @@ def process_chunk(buffer, offset, limit)
     while (b = buffer.get_value(:U8, offset)) != EOL
       if b != POINT
         value *= 10
+        # ZERO = "0".ord == 48
+        # "1".ord == 49
+        # "2".ord == 50
+        # "3".ord == 51
+        # "4".ord == 52
         value += b - ZERO
       end
       offset += 1

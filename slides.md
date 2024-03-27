@@ -440,6 +440,14 @@ read(5, "i;10.6\nLake Havasu City;24.3\nPor"..., 8192) = 8192
 ...
 ```
 
+<!--
+I want to put in a quick mention of one of my favourite tools - strace. You can use it to see how a process (any process - not just Ruby) is interacting with the operating system.
+
+You'll get a whole lot of output showing every syscall the process is making.
+
+You can see that our script is mostly making read calls.
+-->
+
 ---
 
 # Copying is expensive
@@ -451,6 +459,14 @@ How does `#each_line` get the next line from a file?
 4. Ruby copies the line bytes from buffer into a new String object
 
 ![bg right fit](each_line.png)
+
+<!--
+(read through slide)
+
+So we got a copy from the OS cache into the buffer, and then another copy for every line.
+
+That's a lot of copying!
+-->
 
 ---
 
@@ -464,14 +480,22 @@ How does `#each_line` get the next line from a file?
 ![bg right fit](mmap.png)
 
 <!--
-There's an alternative operating system API for accessing files called mmap.
+There's an alternative operating system API for accessing files called mmap (memory map), which we can use via IO::Buffer in Ruby.
 
-This removes the overhead of calling read for every 8 KiB, and we don't have to allocate a String object for every line.
+Mmap tells the OS to use virtual memory to make the file appear within Ruby's memory, without any copying.
 
-It's not magic - you're swapping syscalls to `read` with page faults, but in this case the file is already in the OS cache
+This works really well here because the input fits in memory, and we know it's already in the cache.
+
+The IO::Buffer is a bit like having a giant string with the whole file in it.
+
+We can get a byte at a particular index with #get_value - these are returned as Integers, so there's no String allocation.
+For example - a semicolon will have ASCII value 59.
+
+And we can also slice out strings with #get_string.
+
+This removes the overhead of calling read for every 8 KiB, and we no longer have to allocate a String object for every line.
 
 (open io buffer rb)
-(explain IO::Buffer API)
 -->
 ---
 
@@ -488,13 +512,21 @@ Slower 😢. We no longer have `each_line` overhead, but we've traded it for lot
 `IO::Buffer#get_string_until(offset, SEMI)` feels like an API that could reasonably exist in the standard library
 
 <!--
+And that would make the code a whole lot more readable, and hopefully faster.
+
 So I wrote a tiny C extension that adds it.
 -->
+
+---
 
 ![center](rules.gif)
 
 <!--
 The Java 1BRC competition rules say you're not allowed to use external libraries. But whatever - those rules aren't real - we can go wherever we want on this Ruby adventure.
+
+(open 007 buffer ext)
+(open c extension)
+
 -->
 
 ---
@@ -504,6 +536,8 @@ The Java 1BRC competition rules say you're not allowed to use external libraries
 42% faster than `File#each_line`
 
 ![center](fig9.svg)
+
+<!-- So close... -->
 
 ---
 
@@ -538,35 +572,20 @@ The Java 1BRC competition rules say you're not allowed to use external libraries
 # Custom decimal parser
 
 - `String#to_f` is 19% of time
-- We're allocating a String for every row in order to parse it into a Float
+- We're also allocating a String for every value in order to parse it into a Float
 
 <!--
-The decimals always have a single fractional digit - we don't even need floats - we can use integers storing tenths of a degree.
+(read slide)
+And that string neeeds to be garbage collected.
+
+We have access to individual bytes via IO::Buffer, so what if we could just parse them directly into a number, rather than going via a String?
+
+The decimals also always have a single fractional digit - we don't even need floats - we can use integers storing tenths of a degree.
+
+So what does that look like?
+
+(open 008 custom parser)
 -->
-
----
-
-# Custom decimal parser
-
-```ruby
-EOL = "\n".ord  # 10
-POINT = ".".ord # 46
-ZERO = "0".ord  # 48
-# "1".ord == 49
-# "2".ord == 50
-# "3".ord == 51
-# "4".ord == 52
-
-# "42.3\n" -> 423
-value = 0
-while (b = buffer.get_value(:U8, offset)) != EOL
-    if b != POINT
-        value *= 10
-        value += b - ZERO
-    end
-    offset += 1
-end
-```
 
 ---
 
@@ -619,17 +638,54 @@ We're now spending 34% of self time in the loop - there's lots of Ruby code for 
 - Implement the decimal-to-int parser in C
 
 <!--
+What would be an even nicer API, is if there was an IO::Buffer::Reader class that managed of offset automatically.
+
 (open 009_io_buffer_reader.rb)
 (quickly open C extension)
-
-Is this getting too close to just writing the whole thing in a C extension?
 -->
 
 ---
 
 # Cheating - Even more C extension
 
+Ruby beat a Java implementation!
+
 ![center](fig11.svg)
+
+<!--
+It might be more C than Ruby, but Ruby beat Java!
+-->
+
+---
+
+# How is the Java implementation still 18x faster?
+
+* Completely eliminating String allocations in the hot loop, using a custom hash table
+* Using bit pattern tricks to search/parse multiple bytes at once
+    ```java
+    private static final long BROADCAST_SEMICOLON = 0x3B3B3B3B3B3B3B3BL;
+    private static final long BROADCAST_0x01 = 0x0101010101010101L;
+    private static final long BROADCAST_0x80 = 0x8080808080808080L;
+
+    private static long semicolonMatchBits(long word) {
+        long diff = word ^ BROADCAST_SEMICOLON;
+        return (diff - BROADCAST_0x01) & (~diff & BROADCAST_0x80);
+    }
+
+    private static int nameLen(long separator) {
+        return (Long.numberOfTrailingZeros(separator) >>> 3) + 1;
+    }
+    ```
+* There's an interesting blog post by one of the top 10 authors:
+  https://questdb.io/blog/billion-row-challenge-step-by-step/
+
+<!--
+What we have with the IO::Buffer::Reader implementation feels pretty minimal. How is the optimized Java implementation still 18x faster?
+
+We're working byte-by-byte - the hyper optimized implementations are doing bit pattern tricks to search multiple bytes in one operation. A CPU is just as fast at operating on an 8 byte number as it is with a single byte, so we're leaving a lot of performance on the table by working byte-by-byte.
+
+There's an interesting blog post that goes into more detail about how these tricks work.
+-->
 
 ---
 
@@ -649,39 +705,7 @@ Is this getting too close to just writing the whole thing in a C extension?
 
 ![center](fig12.svg)
 
-<!-- This is the pragmatic "software engineering" solution -->
-
----
-
-# How is the Java implementation still faster?
-
-- Completely eliminating new allocations/GC in the hot loop, using a custom hash table
-- Using bit pattern tricks to search/parse multiple bytes at once
-- There's an interesting blog post by one of the top 10:
-  https://questdb.io/blog/billion-row-challenge-step-by-step/
-
-```java
-private static final long BROADCAST_SEMICOLON = 0x3B3B3B3B3B3B3B3BL;
-private static final long BROADCAST_0x01 = 0x0101010101010101L;
-private static final long BROADCAST_0x80 = 0x8080808080808080L;
-
-private static long semicolonMatchBits(long word) {
-    long diff = word ^ BROADCAST_SEMICOLON;
-    return (diff - BROADCAST_0x01) & (~diff & BROADCAST_0x80);
-}
-
-private static int nameLen(long separator) {
-    return (Long.numberOfTrailingZeros(separator) >>> 3) + 1;
-}
-```
-
-<!--
-What we have with the IO::Buffer::Reader implementation feels pretty minimal.
-
-We're working byte-by-byte - the hyper optimized implementations are doing bit pattern tricks to search multiple bytes in one operation.
-
-There's an interesting blog post that goes into the detail about how that works.
--->
+<!-- This is the pragmatic "software engineering" solution. It's what you'd do at work. -->
 
 ---
 
@@ -697,7 +721,7 @@ It's important to keep in mind that different computers have different performan
 
 Even in production, machines from different generations will behave differently.
 
-It's something you should conscious of.
+It's something you should be conscious of.
 -->
 ---
 
@@ -714,7 +738,6 @@ Here's an interesting example that kind of illustrates this.
 I've been taking on these measurements on a desktop at home. If I compare how it performs to this laptop, you can see that initially the laptop is about 20% faster, but if I keep continously running the benchmark, it gets slower and slower.
 
 Any ideas why?
-
 -->
 
 ---
@@ -731,6 +754,18 @@ Any ideas why?
 * Life is about the journey
 * Can you make it go faster?
     - All the code is available at: https://github.com/rianmcguire/1brc-ruby
+
+<!--
+Optimisation is all about this loop of measurement, profiling and coming up with ideas for improvement, and comparison.
+
+There's real readability/maintainability vs performance trade-off:
+You can make performance gains by hard-coding assumptions like the value always having a single decimal place, or doing unreadable bit pattern tricks, but they have a cost.
+
+I know we could have just added the polars gem and gone fast immediately, but the journey of exploring a problem like this is lot of fun, and I learnt lots!
+
+Can you make it go faster?
+
+-->
 
 ---
 

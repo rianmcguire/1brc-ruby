@@ -41,6 +41,7 @@ def process_chunk(buffer, offset, limit)
   if offset > 0
     # Discard the first line, as it might be incomplete
     # Search for offset of "\n"
+    # Similar to: offset += f.readline("\n").bytesize
     while buffer.get_value(:U8, offset) != EOL
       offset += 1
     end
@@ -49,21 +50,25 @@ def process_chunk(buffer, offset, limit)
 
   loop do
     # Search for offset of ";"
+    # Similar to: offset = line.index(";")
     name_start = offset
     while buffer.get_value(:U8, offset) != SEMI
       offset += 1
     end
     # Create String for name
     # get_string(start_offset, length)
+    # Similar to: name = line[name_start..offset]
     name = buffer.get_string(name_start, offset - name_start)
     offset += 1
 
     # Search for offset of "\n"
+    # Similar to: offset = line.index("\n")
     value_start = offset
     while buffer.get_value(:U8, offset) != EOL
       offset += 1
     end
     # Create String for value
+    # Similar to: value = line[value_start..offset]
     value = buffer.get_string(value_start, offset - value_start)
     offset += 1
 
