@@ -119,16 +119,6 @@ So we have a Ruby program - how do we measure how fast it is?
 
 The simplest tool is one you already have - it's built into your shell. You can prepend `time` to any command.
 
-Demo:
-time ./001_baseline.rb measurements_1M.txt
-
-I'm running this with an input file with only 1 million lines for the sake of time.
-
-If I run it multiple times, you'll see that the time is different on each run - there's some noise in the measurements.
-
-That can be a bit of a trap when you're trying to determine if a change you just made improved the performance - it's quite easy to trick yourself into thinking something has worked. Ideally you want to do multiple runs and average them.
-
-There's tool I found called hyperfine that automates this, and it can also compare different commands and tell you the relative performance difference. I'll give a demo of that soon.
 -->
 
 ---
@@ -137,6 +127,17 @@ There's tool I found called hyperfine that automates this, and it can also compa
 
 <div class="asciinema" data-url="baseline.cast"></div>
 
+<!--
+
+I'm running this with an input file with only 1 million lines for the sake of time.
+
+If I run it multiple times, you'll see that the time is different on each run - there's some noise in the measurements.
+
+That can be a bit of a trap when you're trying to determine if a change you just made improved the performance - it's quite easy to trick yourself into thinking something has worked. Ideally you want to do multiple runs and average them.
+
+There's tool I found called hyperfine that automates this, and it can also compare different commands and tell you the relative performance difference. I'll give a demo of that next.
+
+-->
 ---
 
 # Baseline
@@ -199,20 +200,15 @@ Enter:
 
 # Profiling
 
-- Tracing
-    - ruby-prof - https://ruby-prof.github.io/
-- Sampling
-    - Stackprof - https://github.com/tmm1/stackprof
-    - rbspy - https://rbspy.github.io/
-
-<!-- For Ruby, there are two broad classes of profiling tool -->
+- Analyse the performance of a running program and see where it's spending its time
+- Stackprof - https://github.com/tmm1/stackprof
+- rbspy - https://rbspy.github.io/
 
 <!--
-Tracing tools like ruby-prof hook into Ruby's tracepoint API, which fires an event on every line that executes. This is high overhead - ruby-prof documentation says it typically makes programs run about 2x slower.
 
-Sampling tools work by periodically (say 100 times a second) observing the current callstack of the process and recording what methods are currently executing.
+A profiler is a tool that helps you analyse the performance of a running program.
 
-Sampling gives a good picture of what the program is spending time doing. However it can't tell you things like exactly how many times a method was called, or diffentiate between between a slow function and a frequently called function.
+These are both sampling profilers: they work by periodically (hundreds of times a second) observing the current callstack of the process and recording which methods are currently executing.
 -->
 
 <!--
@@ -239,6 +235,13 @@ stackprof --d3-flamegraph stackprof.dump > flamegraph.html
 </div>
 
 <!--
+What are we looking at here?
+
+The width of the boxes is the percentage of time
+The y-axis is the callstack
+
+(compare with 002 yjit code)
+
 * The slowest method we're using is String#split (37% of time)
 * We're spending 11% of time in GC
 
@@ -257,6 +260,9 @@ Let's see what we can do about both of those. I'm going start by looking at the 
 A quick refresher on garbage collection
 
 (talk through slide)
+
+Your program stops while the garbage collector is running. The best way to reduce the amount of time spend in GC is
+to reduce the amount of garbage by allocating fewer objects.
 -->
 
 ---
@@ -276,7 +282,7 @@ end
 
 You can use GC stat total allocated objects to get the total number of objects that have been allocated so far, and you can compare it before and after to measure a particular block of code.
 
-I measure this line, and there are 4 allocations. Anyone got any guesses what they might be?
+I measured this line, and there are 4 allocations. Anyone got any guesses what they might be?
 
 array, 2x string, unfrozen string literal
 
@@ -310,7 +316,7 @@ My CPU has 6 cores (12 threads), but we're only using one!
     - Each Ractor can execute Ruby code in parallel
     - Experimental
 
-<!-- We should be able to get at least a 6x performance gain -->
+<!-- With 6 cores, we should be able to get at least a 6x performance gain -->
 
 <!-- What are options for parallel execution in Ruby? -->
 
@@ -320,23 +326,18 @@ My CPU has 6 cores (12 threads), but we're only using one!
 
 # Going parallel
 
-Divide the work
-- By line
-    - Simple, but high coordination overhead
-- By range of lines
-    - The lines are different lengths, so we can't seek to the byte offset of a specific line
-- By range of bytes
-    - We could end up starting in the middle of a line
+Divide the work - by line?
+- Simple, but high coordination overhead
 
 ![bg right fit](parallel-by-line.png)
 
 <!--
 
-We need a strategy for dividing the work, and we need to be able to merge it back together.
+We need a strategy for dividing the work. There a few options, each with different challanges.
 
-For dividing the work, there a few options, each with different challanges.
+The first one is dividing by line - we could go through and farm out each line one-by-one to the parallel workers.
 
-(read through slide)
+That's going to be super high overhead. Communicating a piece of work to a worker process isn't free, and if we have to do it 1 billion times, it's going to add up.
 
 -->
 
@@ -344,30 +345,26 @@ For dividing the work, there a few options, each with different challanges.
 
 # Going parallel
 
-Divide the work
-- By line
-    - Simple, but high coordination overhead
-- By range of lines
-    - The lines are different lengths, so we can't seek to the byte offset of a specific line
-- By range of bytes
-    - We could end up starting in the middle of a line
+Divide the work - by range of lines?
+- The lines are different lengths, so we can't seek to the byte offset of a specific line
 
 ![bg right fit](parallel-by-range-of-lines.png)
+
+<!--
+So what if we could do chunks of lines instead?
+
+We'd have to scan through the entire file to locate the line endings first - not really an efficient option either.
+-->
 
 ---
 
 # Going parallel
 
-Divide the work
-- By line
-    - Simple, but high coordination overhead
-- By range of lines
-    - The lines are different lengths, so we can't seek to the byte offset of a specific line
-- By range of bytes
-    - We could end up starting in the middle of a line
+Divide the work - by range of bytes?
+- We could end up starting in the middle of a line
+- ...but there's a neat trick
 
 ![bg right fit](parallel-by-range-of-bytes.png)
-
 
 ---
 
@@ -376,7 +373,7 @@ Divide the work
 <!--
 (open up 005_parallel_processes.rb)
 
-I'm using the parallel gem here for the sake of readability, but internally that's calling Process.fork and using IO.pipe and Marshal to communicate with the child processes.
+I'm using the parallel gem here for the sake of readability, but internally that's calling Process.fork and using IO.pipe to communicate with the child processes.
 -->
 
 ---
@@ -388,7 +385,7 @@ I'm using the parallel gem here for the sake of readability, but internally that
 ![center](fig6.svg)
 
 <!--
-Ruby is a bit over twice as slow as the middle-of-the-road Java implementation. That's honestly better than I was expecting - this sort of CPU-intensive work isn't not something Ruby is great at.
+Ruby is a bit over twice as slow as the middle-of-the-road Java implementation. That's honestly better than I was expecting - this sort of CPU-intensive work isn't something Ruby is great at.
 
 So what about Ractors - they should be even faster because everything happens within the one Ruby process.
 -->
@@ -402,6 +399,10 @@ So what about Ractors - they should be even faster because everything happens wi
 
 ![center](fig7.svg)
 
+<!--
+So very much experimental.
+-->
+
 ---
 
 # Can we go further?
@@ -409,11 +410,11 @@ So what about Ractors - they should be even faster because everything happens wi
 <div class="asciinema" data-url="rbspy-004.cast"></div>
 
 <!--
-Let's run the profiler again and see what the bottleneck is now.
+Let's run a profiler again on the processes version, and see what the bottleneck is now.
 
 I've switched to using rbspy this time, because it has better support for recording multiple subprocesses.
 
-The slowest thing is now each_line, but what can we do instead?
+The slowest thing is now #each_line, but what can we do instead?
 -->
 
 ---
@@ -696,13 +697,13 @@ It's important to keep in mind that different computers have different performan
 
 Even in production, machines from different generations will behave differently.
 
-I'm not saying don't do any optimisation work locally, but it's something you should conscious of.
+It's something you should conscious of.
 -->
 ---
 
 # On your machine vs production
 
-- AMD Ryzen 5 2600 desktop (mid-range 2018 CPU, 6 cores)
+- AMD Ryzen 5 2600 desktop (mid-range 2018 CPU, 6 cores, 12 threads)
 - M2 MacBook Air (2022, 8 cores: 4 performance, 4 efficiency)
 
 ![center h:480](thermal.svg)
