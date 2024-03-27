@@ -4,10 +4,14 @@ require "rake/extensiontask"
 Rake::ExtensionTask.new("io_buffer_hacks")
 Rake::ExtensionTask.new("io_buffer_reader")
 
-task default: [:compile, "slides.html"]
+task default: [:compile, "slides.html", "notes.txt"]
 
 file "slides.html" => ["slides.md", "fig2.svg", "asciinema-player.js", "asciinema-player.css"] do |t|
     sh "node_modules/.bin/marp --html #{t.prerequisites.first} -o #{t.name}"
+end
+
+file "notes.txt" => ["slides.md"] do |t|
+    sh "node_modules/.bin/marp --notes #{t.prerequisites.first} -o #{t.name}"
 end
 
 file "asciinema-player.js" => "node_modules/asciinema-player/dist/bundle/asciinema-player.js" do |t|

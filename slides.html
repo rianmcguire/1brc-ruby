@@ -433,7 +433,9 @@ That's big enough that we should be careful how we work with it - we probably wa
 
 But it's not &quot;big data&quot; - it's easily small enough for a single machine to handle entirely in RAM.
 
-Importantly, it's small enough that the OS will cache the entire file in RAM after it's been loaded for the first time, so the performance is really a question of how quickly we can process those bytes on the CPU, not how quickly we can load from disk.</p></div><div class="bespoke-marp-note" data-index="4" tabindex="0"><p>I started with a basic Ruby implementation.</p><p>open 001_baseline.rb, talk it through</p></div><div class="bespoke-marp-note" data-index="5" tabindex="0"><p>So we have a Ruby program - how do we measure how fast it is?
+Importantly, it's small enough that the OS will cache the entire file in RAM after it's been loaded for the first time, so the performance is really a question of how quickly we can process those bytes on the CPU, not how quickly we can load from disk.</p></div><div class="bespoke-marp-note" data-index="4" tabindex="0"><p>I started with a basic Ruby implementation.
+
+(open 001_baseline.rb, talk it through)</p></div><div class="bespoke-marp-note" data-index="5" tabindex="0"><p>So we have a Ruby program - how do we measure how fast it is?
 
 The simplest tool is one you already have - it's built into your shell. You can prepend `time` to any command.</p></div><div class="bespoke-marp-note" data-index="6" tabindex="0"><p>I'm running this with an input file with only 1 million lines for the sake of time.
 
@@ -494,7 +496,11 @@ array, 2x string, unfrozen string literal
 
 This is my attempt at trying to minimise the number of allocations per input line.
 
-Reduced the number of allocations to 1 (excluding the line String itself)</p></div><div class="bespoke-marp-note" data-index="16" tabindex="0"><p>With 6 cores, we should be able to get at least a 6x performance gain</p><p>What are options for parallel execution in Ruby?</p><p>Because we're spending approximately all of our time executing Ruby code and not waiting on IO, only a single thread will be able to execute at any time</p></div><div class="bespoke-marp-note" data-index="17" tabindex="0"><p>We need a strategy for dividing the work. There a few options, each with different challanges.
+Reduced the number of allocations to 1 (excluding the line String itself)</p></div><div class="bespoke-marp-note" data-index="16" tabindex="0"><p>With 6 cores, we should be able to get at least a 6x performance gain
+
+What are options for parallel execution in Ruby?
+
+Because we're spending approximately all of our time executing Ruby code and not waiting on IO, only a single thread will be able to execute at any time.</p></div><div class="bespoke-marp-note" data-index="17" tabindex="0"><p>We need a strategy for dividing the work. There a few options, each with different challanges.
 
 The first one is dividing by line - we could go through and farm out each line one-by-one to the parallel workers.
 
