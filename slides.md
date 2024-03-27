@@ -99,9 +99,11 @@ Importantly, it's small enough that the OS will cache the entire file in RAM aft
 
 # Baseline
 
-<!-- I started with a basic Ruby implementation. -->
+<!--
+I started with a basic Ruby implementation.
 
-<!-- open 001_baseline.rb, talk it through -->
+(open 001_baseline.rb, talk it through)
+-->
 
 ---
 
@@ -316,11 +318,12 @@ My CPU has 6 cores (12 threads), but we're only using one!
     - Each Ractor can execute Ruby code in parallel
     - Experimental
 
-<!-- With 6 cores, we should be able to get at least a 6x performance gain -->
+<!--
+With 6 cores, we should be able to get at least a 6x performance gain
 
-<!-- What are options for parallel execution in Ruby? -->
+What are options for parallel execution in Ruby?
 
-<!-- Because we're spending approximately all of our time executing Ruby code and not waiting on IO, only a single thread will be able to execute at any time -->
+Because we're spending approximately all of our time executing Ruby code and not waiting on IO, only a single thread will be able to execute at any time.
 
 ---
 
@@ -537,7 +540,9 @@ The Java 1BRC competition rules say you're not allowed to use external libraries
 
 ![center](fig9.svg)
 
-<!-- So close... -->
+<!--
+So close...
+-->
 
 ---
 
@@ -691,7 +696,9 @@ There's an interesting blog post that goes into more detail about how these tric
 
 # Cheating — polars-df gem
 
-<!-- Can we just `gem install` a highly-optimised solution to this exact problem? Yes, yes we can. -->
+<!--
+Can we just `gem install` a highly-optimised solution to this exact problem? Yes, yes we can.
+-->
 
 - https://pola.rs/
 - Similar to the pandas data analysis library for Python
@@ -705,7 +712,9 @@ There's an interesting blog post that goes into more detail about how these tric
 
 ![center](fig12.svg)
 
-<!-- This is the pragmatic "software engineering" solution. It's what you'd do at work. -->
+<!--
+This is the pragmatic "software engineering" solution. It's what you'd do at work.
+-->
 
 ---
 
