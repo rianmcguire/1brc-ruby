@@ -31,9 +31,20 @@ io_buffer_get_string_until(VALUE self, VALUE _offset, VALUE _terminator)
     return rb_str_new(start, length);
 }
 
+static VALUE
+io_buffer_get_string_unsafe(VALUE self)
+{
+    const void *base;
+    size_t size;
+    rb_io_buffer_get_bytes_for_reading(self, &base, &size);
+
+    return rb_str_new_static(base, size);
+}
+
 void
 Init_io_buffer_hacks(void)
 {
     rb_ext_ractor_safe(true);
     rb_define_method(rb_cIOBuffer, "get_string_until", io_buffer_get_string_until, 2);
+    rb_define_method(rb_cIOBuffer, "get_string_unsafe", io_buffer_get_string_unsafe, 0);
 }
