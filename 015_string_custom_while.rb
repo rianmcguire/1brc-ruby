@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env -S ruby --yjit-call-threshold=1
 
 # frozen_string_literal: true
 
@@ -91,13 +91,20 @@ end
 
 buffer = IO::Buffer.map(File.open(ARGV[0]), nil, 0, IO::Buffer::READONLY)
 size = buffer.size
-# TODO: why does performance get worse when we make this bigger?
-chunk_size = 2 * 1024 * 1024
+# chunk_size = 2 * 1024 * 1024
+chunk_size = ARGV[1].to_i * 1024 * 1024
 chunk_ranges = (0...size).step(chunk_size).chain([size]).each_cons(2)
 string = buffer.get_string_unsafe
 
 # Warm up YJIT
-process_chunk(string, 0, 1024 * 1024)
+# warmup = <<INPUT
+# Havana;23.6
+# Havana;23.6
+# Havana;23.6
+# Havana;-23.6
+# Havana;43.6
+# INPUT
+# process_chunk(warmup, 1, warmup.bytesize)
 
 # Merge each chunk of work into the final result as it finishes
 merged = Hash.new { |h, k| h[k] = Agg.new(k) }
@@ -107,6 +114,6 @@ finish = ->(_, _, aggs) do
   end
 end
 
-Parallel.each(chunk_ranges, finish:) { |offset, limit| process_chunk(string, offset, limit) }
+Parallel.each(chunk_ranges, finish:) { |offset, limit| GC.start; process_chunk(string, offset, limit) }
 
 puts "{#{merged.keys.sort.map { |name| merged[name] }.join(", ")}}"
