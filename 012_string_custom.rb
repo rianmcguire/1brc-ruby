@@ -16,7 +16,7 @@ RubyVM::YJIT.enable
 
 Agg = Struct.new(:name, :min, :max, :sum, :count) do
   def initialize(name)
-    super(name, Float::INFINITY, -Float::INFINITY, 0, 0)
+    super(name, 999, -999, 0, 0)
   end
 
   def add(value)
