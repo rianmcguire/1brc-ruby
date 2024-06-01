@@ -2,7 +2,8 @@
 
 # frozen_string_literal: true
 
-require "parallel"
+require "etc"
+require "socket"
 require_relative "lib/io_buffer_hacks"
 
 EOL = "\n".ord # 10
@@ -91,29 +92,60 @@ end
 
 buffer = IO::Buffer.map(File.open(ARGV[0]), nil, 0, IO::Buffer::READONLY)
 size = buffer.size
-# chunk_size = 2 * 1024 * 1024
-chunk_size = ARGV[1].to_i * 1024 * 1024
-chunk_ranges = (0...size).step(chunk_size).chain([size]).each_cons(2)
+chunk_size = 16 * 1024 * 1024
+chunk_ranges = (0...size).step(chunk_size).chain([size]).each_cons(2).to_a
 string = buffer.get_string_unsafe
 
 # Warm up YJIT
-# warmup = <<INPUT
-# Havana;23.6
-# Havana;23.6
-# Havana;23.6
-# Havana;-23.6
-# Havana;43.6
-# INPUT
-# process_chunk(warmup, 1, warmup.bytesize)
+warmup = <<INPUT
+Havana;23.6
+Havana;23.6
+Havana;23.6
+Havana;-23.6
+Havana;43.6
+INPUT
+process_chunk(warmup, 1, warmup.bytesize)
 
-# Merge each chunk of work into the final result as it finishes
-merged = Hash.new { |h, k| h[k] = Agg.new(k) }
-finish = ->(_, _, aggs) do
-  aggs.each do |agg|
-    merged[agg.name].merge(agg)
+work_rd, work_wr = UNIXSocket.pair(:DGRAM)
+
+# TODO: This shouldn't work?
+result_rd, result_wr = UNIXSocket.pair
+
+Process.warmup
+
+Etc.nprocessors.times do
+  Process.fork do
+    while true
+      offset, limit = Marshal.load(work_rd)
+      break unless offset
+      result = process_chunk(string, offset, limit)
+      result_wr.send Marshal.dump(result), 0
+    end
   end
 end
 
-Parallel.each(chunk_ranges, finish:) { |offset, limit| GC.start; process_chunk(string, offset, limit) }
+sender = Thread.new do
+  chunk_ranges.each do |range|
+    work_wr.send Marshal.dump(range), 0
+  end
+  Etc.nprocessors.times do
+    work_wr.send Marshal.dump(nil), 0
+  end
+end
+
+# Merge each chunk of work into the final result as it finishes
+merged = Hash.new { |h, k| h[k] = Agg.new(k) }
+finished = 0
+while true
+  aggs = Marshal.load(result_rd)
+  aggs.each do |agg|
+    merged[agg.name].merge(agg)
+  end
+  finished += 1
+
+  break if finished == chunk_ranges.length
+end
 
 puts "{#{merged.keys.sort.map { |name| merged[name] }.join(", ")}}"
+
+Process.waitall
