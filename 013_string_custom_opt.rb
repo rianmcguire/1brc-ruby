@@ -86,8 +86,8 @@ def process_chunk(string, offset, limit)
     value *= -1 if neg
     offset += 1
 
-    name = string.byteslice(name_start, name_end - name_start)
-    unless s = stations[name]
+    unless s = stations[string.byteslice(name_start, name_end - name_start)]
+      name = string.byteslice(name_start, name_end - name_start)
       s = stations[name] = Agg.new(name)
     end
     s.add(value)
