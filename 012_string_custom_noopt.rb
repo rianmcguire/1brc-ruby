@@ -12,7 +12,7 @@ POINT = ".".ord
 ZERO = "0".ord
 
 # New in Ruby 3.3.0 - we can enable YJIT without command-line options
-# RubyVM::YJIT.enable
+RubyVM::YJIT.enable
 
 Agg = Struct.new(:name, :min, :max, :sum, :count) do
   def initialize(name)

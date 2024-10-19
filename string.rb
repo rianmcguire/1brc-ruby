@@ -1,3 +1,4 @@
+#!/usr/bin/env -S ruby --yjit-disable --yjit-call-threshold=1
 #!/usr/bin/env -S ruby --yjit-disable --yjit-call-threshold=1 --yjit-dump-disasm
 #!/usr/bin/env -S ruby
 
@@ -15,7 +16,7 @@ def foo(buffer)
     $stations[buffer.byteslice(1, 3)]
 end
 
-# RubyVM::YJIT.enable
+RubyVM::YJIT.enable
 
 puts RubyVM::InstructionSequence.of(method(:foo)).disasm
 puts
