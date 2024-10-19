@@ -23,5 +23,8 @@ puts
 # Warm up
 allocations { foo("Hello world!") }
 
+puts "Result:"
+p foo("Hello world!")
+
 puts "Allocations:"
 p allocations { foo("Hello world!") }
